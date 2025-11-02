@@ -5,7 +5,7 @@
 --   - core/loot_core.lua, core/loot_master.lua, core/loot_solo.lua
 --   - core/utils.lua, core/auto_roll.lua, core/commands.lua, core/ui.lua
 --   - data/data_items.lua
---   - integrations/trade.lua, integrations/softres.lua, integrations/json.lua
+--   - integrations/trade.lua, integrations/json.lua
 --
 -- This file is NOT loaded by GogoLoot_Classic_Era.toc to prevent conflicts.
 -- It is retained only for historical reference.

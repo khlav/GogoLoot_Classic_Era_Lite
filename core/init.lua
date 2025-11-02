@@ -4,19 +4,6 @@ function GogoLoot:Initialize(events)
     -- Register slash commands
     GogoLoot:RegisterCommands()
 
-    -- Hook GiveMasterLoot to handle softres roll wins
-    hooksecurefunc("GiveMasterLoot", function(index, player, isGogoLoot)
-        if not isGogoLoot then
-            --print("Manual masterloot: " .. tostring(index) .. " " .. tostring(player))
-            if GogoLoot.softresRemoveRoll[index] and GogoLoot.softresRemoveRoll[index][player] then
-                local winningPlayer, item = unpack(GogoLoot.softresRemoveRoll[index][player])
-                
-                GogoLoot._utils.debug("Player " .. winningPlayer .. " won softres roll")
-                GogoLoot:HandleSoftresRollWin(winningPlayer, item)
-            end
-        end
-    end)
-
     -- Register events
     UIParent:UnregisterEvent("LOOT_BIND_CONFIRM") -- ensure our event hook runs before UIParent
     events:RegisterEvent("LOOT_BIND_CONFIRM")

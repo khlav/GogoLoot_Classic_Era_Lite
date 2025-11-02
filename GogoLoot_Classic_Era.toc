@@ -30,7 +30,6 @@ core\commands.lua
 
 -- Integrations (must load before events)
 integrations\json.lua
-integrations\softres.lua
 integrations\trade.lua
 
 -- Event handling and initialization (load after everything else)

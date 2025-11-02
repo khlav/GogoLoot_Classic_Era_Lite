@@ -2,12 +2,6 @@
 GogoLoot.LOOT_TARGET_MESSAGE = "{rt4} GogoLoot : Master Looter Active! %s items will go to %s!"
 GogoLoot.LOOT_TARGET_DISABLED_MESSAGE = "{rt4} GogoLoot : Master Looter Active! %s items will use Standard Master Looter Window!"
 
-GogoLoot.SOFTRES_ACTIVE = "{rt4} GogoLoot : SoftRes.It List Imported! %s Reserves across %s Items included."
-GogoLoot.SOFTRES_URL = "{rt4} GogoLoot : Softres.it URL https://softres.it/raid/%s"
-GogoLoot.SOFTRES_LOOT = "{rt4} GogoLoot : Per SoftRes.It List, %s goes to %s!"
-GogoLoot.SOFTRES_LOOT_HARD = "{rt4} GogoLoot : Per SoftRes.It Hard Reserve, %s goes to %s!"
-GogoLoot.SOFTRES_ROLL = "{rt4} GogoLoot : Per SoftRes.It List, %s will be rolled on by %s!"
-
 GogoLoot.AUTO_ROLL_ENABLED = "{rt4} GogoLoot : Auto %s on BoEs Enabled!"
 GogoLoot.AUTO_ROLL_DISABLED = "{rt4} GogoLoot : Auto %s on BoEs Disabled!"
 
@@ -152,7 +146,7 @@ function GogoLoot:BuildUI()
 
     TableHash = function(data, seed)
         for k,v in pairs(data) do
-            if k ~= "configHash" and k ~= "softres" then
+            if k ~= "configHash" then
                 seed = ObjectHash(k, seed)
                 seed = ObjectHash(v, seed)
             end
@@ -176,7 +170,6 @@ function GogoLoot:BuildUI()
         end
         -- Only send master looter messages if we're actually in master loot mode (not group loot)
         if GogoLoot:areWeMasterLooter() and GetLootMethod() == "master" then
-            GogoLoot:SetSoftresProfile(GogoLoot_Config.softres.lastInput)
 
             local playerLoots = {}
 
@@ -260,15 +253,6 @@ function GogoLoot:BuildUI()
                     SendChatMessage(string.format(GogoLoot.LOOT_TARGET_MESSAGE, targetList, capitalize(player)), UnitInRaid("Player") and "RAID" or "PARTY")
                 end]]
 
-                if GogoLoot_Config.enableSoftres and GogoLoot_Config.softres.profiles.current then
-                    SendChatMessage(string.format(GogoLoot.SOFTRES_ACTIVE, tostring(GogoLoot_Config.softres.reserveCount), tostring(GogoLoot_Config.softres.itemCount)), UnitInRaid("Player") and "RAID" or "PARTY")
-                    local urlString = string.format(GogoLoot.SOFTRES_URL, tostring(GogoLoot_Config.softres.profiles.current.id))
-                    SendChatMessage(urlString, UnitInRaid("Player") and "RAID" or "PARTY")
-                    if GogoLoot_Config.softres.profiles.current.discord and string.len(GogoLoot_Config.softres.profiles.current.discord) > 0 then
-                        SendChatMessage("{rt4} GogoLoot : Discord " .. GogoLoot_Config.softres.profiles.current.discord, UnitInRaid("Player") and "RAID" or "PARTY")
-                    end
-                    
-                end
             end
         elseif GetLootMethod() == "group" then
             -- find all types that we are need-rolling on (if any)
@@ -711,17 +695,31 @@ function GogoLoot:BuildUI()
             
             dropdown:SetValue(GogoLoot.rarityToText[GetLootThreshold()])
             dropdown:SetCallback("OnValueChanged", function()
-                SetLootMethod("master", GogoLoot:UnitName("Player"), GogoLoot.textToRarity[dropdown:GetValue()])
-                -- validate 
-                if GetLootThreshold() ~= GogoLoot.textToRarity[dropdown:GetValue()] then
-                    --dropdown:SetValue(GogoLoot.rarityToText[GetLootThreshold()])
-                    --StaticPopup_Show ("GOGOLOOT_THRESHOLD_ERROR")
-                    widget:ReleaseChildren() -- redraw
-                    render[group](widget, group)
-                else
-                    widget:ReleaseChildren() -- redraw
-                    render[group](widget, group)
+                local rarity = GogoLoot.textToRarity[dropdown:GetValue()]
+                local playerName = GogoLoot:UnitName("Player")
+                
+                -- Use Classic Era API: C_PartyInfo.SetLootMethod(2, nameToSet) where 2 = master loot
+                if C_PartyInfo and C_PartyInfo.SetLootMethod then
+                    C_PartyInfo.SetLootMethod(2, playerName)
                 end
+                
+                -- Set loot threshold directly using SetLootThreshold
+                if SetLootThreshold then
+                    C_Timer.After(0.1, function()
+                        SetLootThreshold(rarity)
+                    end)
+                end
+                
+                -- validate 
+                C_Timer.After(0.5, function()
+                    if GetLootThreshold() ~= rarity then
+                        widget:ReleaseChildren() -- redraw
+                        render[group](widget, group)
+                    else
+                        widget:ReleaseChildren() -- redraw
+                        render[group](widget, group)
+                    end
+                end)
             end)
             
             sf:AddChild(dropdown)
@@ -774,31 +772,6 @@ function GogoLoot:BuildUI()
             sf:AddChild(fallbackLabel)
             spacer(sf)]]
 
-            if false then -- do softres in ML tab
-                spacer2(sf)
-
-                local importMessage = AceGUI:Create("Label")
-                importMessage:SetFullWidth(true)
-                importMessage:SetFontObject(GameFontNormal)
-                importMessage:SetText("GogoLoot supports SoftRes.It! Just copy and paste the code from SoftRes.It website here to enable automatic distribution for this raid.")
-
-                sf:AddChild(importMessage)
-
-                local importEditBox = AceGUI:Create("MultiLineEditBox")
-                importEditBox:SetFullWidth(true)
-                importEditBox:SetHeight(64)
-                importEditBox:DisableButton(true)
-                importEditBox:SetLabel("")--("Status: Inactive")
-                if GogoLoot_Config.softres.lastInput then
-                    importEditBox:SetText(GogoLoot_Config.softres.lastInput)
-                end
-                importEditBox:SetCallback("OnTextChanged", function()
-                    GogoLoot_Config.softres.lastInput = importEditBox:GetText()
-                end)
-
-                sf:AddChild(importEditBox)
-            end
-
             local tabs = AceGUI:Create("TabGroup")
             tabs:SetLayout("Flow") 
             tabs:SetTabs({
@@ -812,52 +785,6 @@ function GogoLoot:BuildUI()
             tabs:SetCallback("OnGroupSelected", function(widget, event, group) widget:ReleaseChildren() render[group](widget, group) end)
             tabs:SelectTab("ignoredMaster")
             sf:AddChild(tabs)
-        end,
-        ["softres"] = function(widget, group)
-
-            local importMessage = AceGUI:Create("Label")
-            importMessage:SetFullWidth(true)
-            importMessage:SetFontObject(GameFontNormal)
-            importMessage:SetText("GogoLoot supports SoftRes.It; just copy and paste the code from SoftRes.It website here to enable automatic distribution for this raid.")
-
-            
-            local softres = checkbox(widget, "Enable SoftRes.It List Automation for Master Looter")
-            softres:SetDisabled(not GogoLoot:areWeMasterLooter())
-            softres:SetValue(GogoLoot_Config.enableSoftres and GogoLoot:areWeMasterLooter())
-            softres:SetCallback("OnValueChanged", function()
-                GogoLoot_Config.enableSoftres = softres:GetValue()
-            end)
-            spacer2(widget)
-            widget:AddChild(importMessage)
-
-            spacer(widget)
-
-            local importEditBox = AceGUI:Create("MultiLineEditBox")
-            importEditBox:SetFullWidth(true)
-            importEditBox:SetFullHeight(true)
-            importEditBox:DisableButton(true)
-            importEditBox:SetLabel("")--("Status: Inactive")
-            if GogoLoot_Config.softres.lastInput then
-                importEditBox:SetText(GogoLoot_Config.softres.lastInput)
-            end
-            importEditBox:SetCallback("OnTextChanged", function()
-                GogoLoot_Config.softres.lastInput = importEditBox:GetText()
-            end)
-
-            widget:AddChild(importEditBox)
-
-            spacer2(widget)
-
-            --[[
-            local list = scrollFrame(widget)
-
-            for _,id in pairs({}) do
-                buildItemLink(list, id, true, 250)
-                label(list, "Someplayer" .. tostring(_), 100)
-            end
-            ]]
-
-
         end,
         ["about"] = function(widget, group)
             widget = scrollFrame(widget)
@@ -955,10 +882,6 @@ function GogoLoot:BuildUI()
                     value = "ml"
                 },
                 {
-                    text = "SoftRes.It Settings",
-                    value = "softres"
-                },
-                {
                     text = "About",
                     value = "about"
                 }
@@ -973,11 +896,6 @@ function GogoLoot:BuildUI()
                     text = "Master Looter Settings",
                     value = "ml",
                     disabled = true,
-                },
-                {
-                    text = "SoftRes.It Settings",
-                    value = "softres",
-                    --disabled = true,
                 },
                 {
                     text = "About",

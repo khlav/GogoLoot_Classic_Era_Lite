@@ -56,9 +56,6 @@ function GogoLoot:BuildConfig()
         end
     end
 
-    GogoLoot_Config.softres = {}
-    GogoLoot_Config.softres.profiles = {}
-
     GogoLoot_Config._version = CONFIG_VERSION
 end
 

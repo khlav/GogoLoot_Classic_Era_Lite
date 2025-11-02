@@ -112,50 +112,31 @@ function GogoLoot:VacuumSlot(index, playerIndex, validPreviouslyHack)
             and (itemBindings[id] ~= 1 or GogoLoot.validBOPInstances[select(8, GetInstanceInfo())]) then  -- make sure we are inside an instance that allows loot trading
             
 
-            local softresResult = GogoLoot:HandleSoftresLoot(id, playerIndex, index, GetLootSourceInfo(index)) -- todo: player list
-
             local targetPlayerName = GogoLoot_Config.players[GogoLoot.rarityToText[rarity]] or strlower(GogoLoot:UnitName("Player"))--GogoLoot_Config.players["all"]
 
-            if softresResult and type(softresResult) == "table" then
-                GogoLoot._utils.debug("Softres roll taking place")
-                if not GogoLoot.softresRemoveRoll[index] then
-                    GogoLoot.softresRemoveRoll[index] = {}
-                end
-                for _, player in pairs(softresResult) do
-                    local lower = strlower(player)
-                    GogoLoot.softresRemoveRoll[index][playerIndex[lower]] = {lower, id}
-                end
-                return true -- softres roll taking place
-            else
-                if softresResult then
-                    targetPlayerName = strlower(softresResult) -- loot to this player
-                    GogoLoot._utils.debug("Softres loot going to " .. targetPlayerName)
-                end
+            if targetPlayerName == "standardLootWindow" then
+                GogoLoot._utils.debug("Standard loot window target")
+                return true -- open loot window
+            end
 
-                if targetPlayerName == "standardLootWindow" then
-                    GogoLoot._utils.debug("Standard loot window target")
-                    return true -- open loot window
-                end
+            -- this redirects loot to the "all" player if the specific players are not available
+            --local playerID = playerIndex[GogoLoot_Config.players[rarityToText[rarity]]] or playerIndex[GogoLoot_Config.players["all"]]
 
-                -- this redirects loot to the "all" player if the specific players are not available
-                --local playerID = playerIndex[GogoLoot_Config.players[rarityToText[rarity]]] or playerIndex[GogoLoot_Config.players["all"]]
-
-                if targetPlayerName then
-                    GogoLoot._utils.debug("Looting to " .. targetPlayerName)
-                    local playerID = playerIndex[targetPlayerName]
-                    if playerID then
-                        validPreviouslyHack[targetPlayerName] = true
-                        GiveMasterLoot(index, playerID, true)
-                        return false
-                    else
-                        GogoLoot._utils.debug("Player " .. targetPlayerName .. " has no ID!")
-                        if validPreviouslyHack[targetPlayerName] then -- we already looted it (hack to fix loot window, refactor this later)
-                            return false
-                        end
-                    end
+            if targetPlayerName then
+                GogoLoot._utils.debug("Looting to " .. targetPlayerName)
+                local playerID = playerIndex[targetPlayerName]
+                if playerID then
+                    validPreviouslyHack[targetPlayerName] = true
+                    GiveMasterLoot(index, playerID, true)
+                    return false
                 else
-                    GogoLoot._utils.debug("No player to loot! " .. GogoLoot.rarityToText[rarity])
+                    GogoLoot._utils.debug("Player " .. targetPlayerName .. " has no ID!")
+                    if validPreviouslyHack[targetPlayerName] then -- we already looted it (hack to fix loot window, refactor this later)
+                        return false
+                    end
                 end
+            else
+                GogoLoot._utils.debug("No player to loot! " .. GogoLoot.rarityToText[rarity])
             end
         end
     end

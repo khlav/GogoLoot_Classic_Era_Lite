@@ -233,15 +233,10 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                 end
             else -- we left, clear group-specific settings
                 GogoLoot_Config.players = {}
-                GogoLoot_Config.softres.profiles.current = nil
-                GogoLoot_Config.softres.profiles._current_data = nil
             end
         end
     elseif "PARTY_LOOT_METHOD_CHANGED" == evt and GogoLoot:areWeMasterLooter() and GetLootMethod() == "master" then
         GogoLoot:BuildUI()
-    elseif "LOOT_SLOT_CLEARED" == evt then
-        --print("LSC: " .. tostring(GetLootSlotInfo(tonumber(arg))))
-        GogoLoot:HandleSoftresLooted(arg)
     elseif "PARTY_LOOT_METHOD_CHANGED" == evt and GetLootMethod() == "group" then
         GogoLoot:AnnounceNeeds()
     --    SendChatMessage(string.format(GogoLoot.AUTO_ROLL_ENABLED, 1 == GogoLoot_Config.autoRollThreshold and "Need" or "Greed"), UnitInRaid("Player") and "RAID" or "PARTY")

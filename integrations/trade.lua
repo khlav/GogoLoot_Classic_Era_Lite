@@ -33,8 +33,16 @@ end
 
 function GogoLoot:PrintTrade()
 
+    -- Check if trade announcements are disabled
+    -- Priority: trade checkbox override > main setting > Gargul presence
+    local disableAnnounce = GogoLoot_Config.disableTradeAnnounce
+    if GogoLoot.tradeCheckboxOverride ~= nil then
+        -- Trade checkbox override takes precedence
+        disableAnnounce = not GogoLoot.tradeCheckboxOverride
+    end
+    
     -- Don't announce if disabled, if Gargul's checkbox exists (let Gargul handle it), or if no trade partner
-    if GogoLoot_Config.disableTradeAnnounce or GogoLoot:HasGargulCheckbox() or (not GogoLoot.tradeState.player) then
+    if disableAnnounce or GogoLoot:HasGargulCheckbox() or (not GogoLoot.tradeState.player) then
         return
     end
 
@@ -226,12 +234,26 @@ function GogoLoot:CreateTradeCheckbox()
     
     check.tooltipText = "GogoLoot will announce trades to party or raid, or send a private message if you are not in a group."
     
-    check:SetChecked(true)
+    -- Initialize checkbox state based on current config setting
+    check:SetChecked(not GogoLoot_Config.disableTradeAnnounce)
     
-    check:SetScript("OnClick", function(self) GogoLoot_Config.disableTradeAnnounce = not self:GetChecked() end)
+    -- Checkbox state is a temporary override for this trade session only
+    -- It doesn't modify the main setting, just overrides it for announcements
+    check:SetScript("OnClick", function(self) 
+        GogoLoot.tradeCheckboxOverride = self:GetChecked()
+    end)
     
     -- Store reference for later visibility checks
     GogoLoot.tradeCheckbox = check
+end
+
+-- Helper function to sync checkbox state with config setting
+function GogoLoot:SyncTradeCheckboxState()
+    if GogoLoot.tradeCheckbox then
+        -- Reset override and sync checkbox to main setting
+        GogoLoot.tradeCheckboxOverride = nil
+        GogoLoot.tradeCheckbox:SetChecked(not GogoLoot_Config.disableTradeAnnounce)
+    end
 end
 
 -- Helper function to update checkbox visibility based on Gargul's presence
@@ -280,7 +302,13 @@ end
 function GogoLoot:TradeEvent(evt, arg, message, a, b, c, ...)
     if evt == "UI_ERROR_MESSAGE" and (message == ERR_TRADE_BAG_FULL or message == ERR_TRADE_MAX_COUNT_EXCEEDED or message == ERR_TRADE_TARGET_BAG_FULL or message == ERR_TRADE_TARGET_MAX_COUNT_EXCEEDED) then
         -- trade failed
-        if GogoLoot.tradeState.player and not GogoLoot:HasGargulCheckbox() then
+        -- Check if trade announcements are disabled (trade checkbox override > main setting)
+        local disableAnnounce = GogoLoot_Config.disableTradeAnnounce
+        if GogoLoot.tradeCheckboxOverride ~= nil then
+            disableAnnounce = not GogoLoot.tradeCheckboxOverride
+        end
+        
+        if GogoLoot.tradeState.player and not disableAnnounce and not GogoLoot:HasGargulCheckbox() then
             if IsInGroup() then
                 SendChatMessage(string.format(GogoLoot.TRADE_FAILED, GogoLoot.tradeState.player), UnitInRaid("Player") and "RAID" or "PARTY")
             else
@@ -289,7 +317,13 @@ function GogoLoot:TradeEvent(evt, arg, message, a, b, c, ...)
         end
     elseif evt == "TRADE_REQUEST_CANCEL" or (evt == "UI_INFO_MESSAGE" and message == ERR_TRADE_CANCELLED) then--elseif (evt == "UI_INFO_MESSAGE" and message == ERR_TRADE_CANCELLED) or evt == "TRADE_CLOSED" or evt == "TRADE_REQUEST_CANCEL" then
         -- trade cancelled
-        if GogoLoot_Config.disableTradeAnnounce or GogoLoot:HasGargulCheckbox() then
+        -- Check if trade announcements are disabled (trade checkbox override > main setting)
+        local disableAnnounce = GogoLoot_Config.disableTradeAnnounce
+        if GogoLoot.tradeCheckboxOverride ~= nil then
+            disableAnnounce = not GogoLoot.tradeCheckboxOverride
+        end
+        
+        if disableAnnounce or GogoLoot:HasGargulCheckbox() then
             return
         end
 
@@ -318,6 +352,11 @@ function GogoLoot:TradeEvent(evt, arg, message, a, b, c, ...)
         -- If Gargul's checkbox doesn't exist and ours doesn't either, create ours now (in case Gargul never loads)
         if not GogoLoot:HasGargulCheckbox() and not GogoLoot.tradeCheckbox then
             GogoLoot:CreateTradeCheckbox()
+        end
+        
+        -- Sync checkbox state with config setting whenever trade window opens
+        if not GogoLoot:HasGargulCheckbox() then
+            GogoLoot:SyncTradeCheckboxState()
         end
     end
 end

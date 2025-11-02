@@ -12,9 +12,30 @@ Libs\LibDeflate\lib.xml
 
 embeds.xml
 
-loot.lua
-ui.lua
-softres.lua
-json.lua
-trade.lua
+-- Core modules (must load first)
+core\core.lua
+core\classic_compat.lua
+core\config.lua
+data\data_items.lua
+core\utils.lua
 
+-- Loot processing modules
+core\loot_core.lua
+core\loot_master.lua
+core\loot_solo.lua
+
+-- Feature modules
+core\auto_roll.lua
+core\commands.lua
+
+-- Integrations (must load before events)
+integrations\json.lua
+integrations\softres.lua
+integrations\trade.lua
+
+-- Event handling and initialization (load after everything else)
+core\events.lua
+core\init.lua
+
+-- UI (load after init)
+core\ui.lua

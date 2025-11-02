@@ -174,7 +174,8 @@ function GogoLoot:BuildUI()
                 GogoLoot_Config.oldAutoLootSetting = nil
             end
         end
-        if GogoLoot:areWeMasterLooter() then
+        -- Only send master looter messages if we're actually in master loot mode (not group loot)
+        if GogoLoot:areWeMasterLooter() and GetLootMethod() == "master" then
             GogoLoot:SetSoftresProfile(GogoLoot_Config.softres.lastInput)
 
             local playerLoots = {}
@@ -557,10 +558,24 @@ function GogoLoot:BuildUI()
                 end
             end)
 
-            local tradeAnnounce = checkbox(widget, "Announce Trades when in Group")
-            tradeAnnounce:SetValue(not GogoLoot_Config.disableTradeAnnounce)
+            local tradeAnnounceLabel = "Announce Trades when in Group"
+            if GogoLoot:HasGargulCheckbox() then
+                tradeAnnounceLabel = tradeAnnounceLabel .. " (Disabled - Using Gargul)"
+                -- Ensure trade announcements are disabled when Gargul is present
+                GogoLoot_Config.disableTradeAnnounce = true
+            end
+            local tradeAnnounce = checkbox(widget, tradeAnnounceLabel)
+            if GogoLoot:HasGargulCheckbox() then
+                tradeAnnounce:SetDisabled(true)
+                tradeAnnounce:SetValue(false)
+            else
+                tradeAnnounce:SetDisabled(false)
+                tradeAnnounce:SetValue(not GogoLoot_Config.disableTradeAnnounce)
+            end
             tradeAnnounce:SetCallback("OnValueChanged", function()
-                GogoLoot_Config.disableTradeAnnounce = not tradeAnnounce:GetValue()--print("Callback!  " .. tostring(speedyLoot:GetValue()))
+                if not GogoLoot:HasGargulCheckbox() then
+                    GogoLoot_Config.disableTradeAnnounce = not tradeAnnounce:GetValue()--print("Callback!  " .. tostring(speedyLoot:GetValue()))
+                end
             end)
 
             --[[
@@ -861,6 +876,18 @@ function GogoLoot:BuildUI()
             labelNormal(widget, "• Hold Shift while looting to disable GogoLoot for that corpse.")
             labelNormal(widget, "• To keep momentum during a raid, have your Master Looter come with empty bags so they can scoop up all the gear and hand it out at the end.")
             labelNormal(widget, "• For faster raid clears, set the threshold to gray (poor). This will allow your raiders to focus on moving in one direction towards the next boss, not having to run back randomly when they see sparkles.")
+            
+            spacer2(widget)
+            
+            labelLarge(widget, "Addon Compatibility")
+            
+            spacer(widget)
+            
+            if GogoLoot:HasGargulCheckbox() then
+                labelNormal(widget, "• Gargul is installed. GogoLoot's trade announcements are automatically disabled to prevent duplicate announcements. Use Gargul's trade announcement checkbox in the trade window instead.")
+            else
+                labelNormal(widget, "• If you have Gargul installed, GogoLoot will automatically disable its trade announcements to prevent conflicts. Use Gargul's trade announcement checkbox in the trade window instead.")
+            end
 
             spacer2(widget)
             

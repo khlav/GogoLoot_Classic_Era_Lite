@@ -4,7 +4,6 @@ CONFIG_VERSION = 10
 
 function GogoLoot:BuildConfig()
     GogoLoot_Config = {
-        ["speedyLoot"] = true,
         ["enabled"] = true,
         ["autoRoll"] = true,
         ["autoConfirm"] = false,

@@ -15,15 +15,9 @@ function GogoLoot:showLootFrame(reason, force)
         return
     end
 
-    if GogoLoot_Config.speedyLoot and (force or GogoLoot.canOpenWindow) then
-        GogoLoot._utils.debug("Showing loot frame because ".. reason)
-        GogoLoot.canOpenWindow = false
-        LootFrame:GetScript("OnEvent")(LootFrame, "LOOT_OPENED")
-    else
-        --print("Didnt open window because")
-        --print(GogoLoot.canOpenWindow)
-        --print(GogoLoot_Config.speedyLoot)
-    end
+    GogoLoot._utils.debug("Showing loot frame because ".. reason)
+    GogoLoot.canOpenWindow = false
+    LootFrame:GetScript("OnEvent")(LootFrame, "LOOT_OPENED")
 end
 
 -- Export caches for use by other modules

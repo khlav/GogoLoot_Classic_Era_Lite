@@ -23,7 +23,6 @@ GogoLoot.conflicts = { -- name must match the .TOC filename
     "KillTrack",
     "LootFast2",
     "RCLootCouncil_Classic",
-    "SpeedyAutoLoot",
 }
 
 local AceGUI = LibStub("AceGUI-3.0")
@@ -108,6 +107,12 @@ function GogoLoot:BuildUI()
     frame.frame:SetFrameStrata("DIALOG")
     GogoLoot._frame = frame
     frame:SetTitle("GogoLoot")
+    -- Add padding to the title by adjusting its position after frame is initialized
+    C_Timer.After(0.01, function()
+        if frame.titletext then
+            frame.titletext:SetPoint("TOPLEFT", 12, -16)  -- Changed from default -8 to -16 for more padding (move up)
+        end
+    end)
     frame:SetLayout("Fill")
     frame:SetWidth(565)
     frame:SetHeight(650)
@@ -152,7 +157,7 @@ function GogoLoot:BuildUI()
     frame:SetCallback("OnClose", function()
         -- temporary hack
         --print("Config Hash: " .. tostring(TableHash(GogoLoot_Config, 0)))
-        if (GogoLoot_Config.enabled and GogoLoot:areWeMasterLooter()) or GogoLoot_Config.speedyLoot then
+        if (GogoLoot_Config.enabled and GogoLoot:areWeMasterLooter()) then
             if not GogoLoot_Config.oldAutoLootSetting then
                 GogoLoot_Config.oldAutoLootSetting = GetCVar("autoLootDefault")
             end
@@ -332,6 +337,22 @@ function GogoLoot:BuildUI()
         label:SetFontObject(GameFontHighlight)
         label:SetText(" ")
         widget:AddChild(label)
+    end
+
+    local function horizontalLine(widget)
+        -- Create a simple label with a background color to act as a horizontal line
+        local lineLabel = AceGUI:Create("Label")
+        lineLabel:SetFullWidth(true)
+        lineLabel:SetHeight(1)
+        lineLabel:SetText("")
+        
+        -- Set background color via the frame using ARTWORK layer (standard content layer)
+        local frame = lineLabel.frame
+        local bg = frame:CreateTexture(nil, "ARTWORK")
+        bg:SetAllPoints(frame)
+        bg:SetColorTexture(0.5, 0.5, 0.5, 0.5)
+        
+        widget:AddChild(lineLabel)
     end
 
     local function scrollFrame(widget, height)
@@ -523,20 +544,9 @@ function GogoLoot:BuildUI()
             buildIgnoredFrame(widget, "Enter Item ID, or Drag Item on to Input.", GogoLoot_Config.ignoredItemsSolo, group)
         end,
         ["ignoredMaster"] = function(widget, group)
-            buildIgnoredFrame(widget, "NOTE: All |cFFFF8000Legendary Quality|r items, as well as non-tradable Quest Items, are always ignored and will appear in a Standard Loot Window.\n\nItems on this list will always show up in the Standard Loot Window.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.ignoredItemsMaster, group, 200)
+            buildIgnoredFrame(widget, "NOTE: All |cFFFF8000Legendary items|r, as well as non-tradable Quest Items, are always ignored and will appear in a Standard Loot Window.\n\nItems on this list will always show up in the Standard Loot Window.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.ignoredItemsMaster, group, 200)
         end,
         ["general"] = function(widget, group)
-            local speedyLoot = checkbox(widget, "Speedy Loot (No Loot Window)")
-            speedyLoot:SetValue(true == GogoLoot_Config.speedyLoot)
-            speedyLoot:SetCallback("OnValueChanged", function()
-                GogoLoot_Config.speedyLoot = speedyLoot:GetValue()--print("Callback!  " .. tostring(speedyLoot:GetValue()))
-                if GogoLoot_Config.speedyLoot then
-                    LootFrame:UnregisterEvent('LOOT_OPENED')
-                else
-                    LootFrame:RegisterEvent('LOOT_OPENED')
-                end
-            end)
-
             --[[
             local autoAccept = checkbox(widget, "Speedy Confirm (Auto Confirm BoP Loot)")
             autoAccept:SetCallback("OnValueChanged", function()
@@ -583,36 +593,65 @@ function GogoLoot:BuildUI()
             spacer2(widget)
 
             labelLarge(widget, "Automatic Rolls")
-            label(widget, "Rolls on |cff1eff00Green BoE Items|r", 250)
-            buildDropdown("autoGreenRolls")
+            
+            -- Wrap each label+dropdown pair in a container to prevent wrapping
+            local greenContainer = AceGUI:Create("SimpleGroup")
+            greenContainer:SetFullWidth(true)
+            greenContainer:SetLayout("Flow")
+            label(greenContainer, "    Rolls on |cff1eff00Green BoE Items|r", 250)
+            local greenDropdown = AceGUI:Create("Dropdown")
+            greenDropdown:SetWidth(200)
+            greenDropdown:SetList({
+                ["!manual"]="Manual Rolls", ["greed"]="Automatic Rolls - Greed", ["need"]="Automatic Rolls - Need"
+            })
+            greenDropdown:SetValue(GogoLoot_Config.autoGreenRolls or "!manual")
+            greenDropdown:SetCallback("OnValueChanged", function()
+                GogoLoot_Config.autoGreenRolls = greenDropdown:GetValue()
+            end)
+            greenDropdown:SetDisabled(false)
+            greenContainer:AddChild(greenDropdown)
+            widget:AddChild(greenContainer)
 
-            label(widget, "Rolls on |cff0070ddBlue BoE Items|r", 250)
-            buildDropdown("autoBlueRolls")
+            local blueContainer = AceGUI:Create("SimpleGroup")
+            blueContainer:SetFullWidth(true)
+            blueContainer:SetLayout("Flow")
+            label(blueContainer, "    Rolls on |cff0070ddBlue BoE Items|r", 250)
+            local blueDropdown = AceGUI:Create("Dropdown")
+            blueDropdown:SetWidth(200)
+            blueDropdown:SetList({
+                ["!manual"]="Manual Rolls", ["greed"]="Automatic Rolls - Greed", ["need"]="Automatic Rolls - Need"
+            })
+            blueDropdown:SetValue(GogoLoot_Config.autoBlueRolls or "!manual")
+            blueDropdown:SetCallback("OnValueChanged", function()
+                GogoLoot_Config.autoBlueRolls = blueDropdown:GetValue()
+            end)
+            blueDropdown:SetDisabled(false)
+            blueContainer:AddChild(blueDropdown)
+            widget:AddChild(blueContainer)
 
-            label(widget, "Rolls on |cffa335eePurple BoE Items|r", 250)
-            buildDropdown("autoPurpleRolls")
-
+            local purpleContainer = AceGUI:Create("SimpleGroup")
+            purpleContainer:SetFullWidth(true)
+            purpleContainer:SetLayout("Flow")
+            label(purpleContainer, "    Rolls on |cffa335eePurple BoE Items|r", 250)
+            local purpleDropdown = AceGUI:Create("Dropdown")
+            purpleDropdown:SetWidth(200)
+            purpleDropdown:SetList({
+                ["!manual"]="Manual Rolls", ["greed"]="Automatic Rolls - Greed", ["need"]="Automatic Rolls - Need"
+            })
+            purpleDropdown:SetValue(GogoLoot_Config.autoPurpleRolls or "!manual")
+            purpleDropdown:SetCallback("OnValueChanged", function()
+                GogoLoot_Config.autoPurpleRolls = purpleDropdown:GetValue()
+            end)
+            purpleDropdown:SetDisabled(false)
+            purpleContainer:AddChild(purpleDropdown)
+            widget:AddChild(purpleContainer)
 
             spacer2(widget)
             labelLarge(widget, "Manual Roll List")
 
-            label(widget, "• |cffff8000Orange Items")
-            label(widget, "• Recipes")
-            label(widget, "• Mounts")
-            label(widget, "• Pets")
-            spacer2(widget)
-            label(widget, "Additionally, Items on this list will always show up for manual rolls.")
+            label(widget, "|cffff8000Legendary items|r, Recipes, Mounts, Pets, and items on this list will always show up for manual rolls.")
             spacer(widget)
 
-
-
-            if WOW_PROJECT_ID ~= WOW_PROJECT_BURNING_CRUSADE_CLASSIC then -- the function requires a hardware event in TBC
-                local autoGray = checkbox(widget, "Automatic Destroy Gray Items on Loot", nil, nil)
-                autoGray:SetCallback("OnValueChanged", function()
-                    GogoLoot_Config.enableAutoGray = autoGray:GetValue()--print("Callback!  " .. tostring(speedyLoot:GetValue()))
-                end)
-                autoGray:SetValue(true == GogoLoot_Config.enableAutoGray)
-            end
 
             local tabs = AceGUI:Create("SimpleGroup")--AceGUI:Create("TabGroup")
             tabs:SetLayout("Flow")
@@ -646,7 +685,11 @@ function GogoLoot:BuildUI()
                 GogoLoot_Config.enabled = enabled:GetValue()
             end)
             spacer(sf)
-            label(sf, "Loot Threshold", 280)
+            if not UnitIsGroupLeader("Player") then
+                label(sf, "Loot Threshold [Requires Group/Raid Lead]", 280)
+            else
+                label(sf, "Loot Threshold", 280)
+            end
             local dropdown = AceGUI:Create("Dropdown")
             dropdown:SetWidth(150) -- todo: align right
             if not UnitIsGroupLeader("Player") then
@@ -763,75 +806,79 @@ function GogoLoot:BuildUI()
         end,
         ["about"] = function(widget, group)
             widget = scrollFrame(widget)
-            labelLarge(widget, "Don't Let Loot Slow Down Your Zug!")
-    
-            spacer(widget)
-
-            label(widget, "GogoLoot was designed to help speed up the looting process by automating some of the Master Looter and Group Loot settings.")
-            
-            spacer2(widget)
             
             labelLarge(widget, "Tips & Tricks")
             
             spacer(widget)
             
-            labelNormal(widget, "• Hold Shift while looting to disable GogoLoot for that corpse.")
-            labelNormal(widget, "• To keep momentum during a raid, have your Master Looter come with empty bags so they can scoop up all the gear and hand it out at the end.")
-            labelNormal(widget, "• For faster raid clears, set the threshold to gray (poor). This will allow your raiders to focus on moving in one direction towards the next boss, not having to run back randomly when they see sparkles.")
+            if GetCVarBool("autoLootDefault") then
+                labelNormal(widget, "• You have Blizzard Autolooting enabled. Hold Shift while looting to disable GogoLoot for that corpse.")
+            else
+                labelNormal(widget, "• You have Blizzard Autolooting disabled. Hold Shift while looting to enable GogoLoot for that corpse.")
+            end
+            labelNormal(widget, "• Set loot threshold to gray (poor) to automatically distribute all quality items to configured players.")
+            labelNormal(widget, "• As Master Looter, assign different rarity tiers to different raid members for organized distribution.")
             
             spacer2(widget)
             
-            labelLarge(widget, "Addon Compatibility")
+            labelLarge(widget, "Recommended Addons")
             
             spacer(widget)
             
-            labelNormal(widget, "Macro to Delete Grays")
-            labelNormal(widget, "• Blizzard has removed the ability for add-ons to automatically delete gray items, however you can still use this macro to do it.")
-            --labelNormal(widget, "Macro to Delete Grays")
-            local box = AceGUI:Create("EditBox")
-            box:DisableButton(true)
-            box:SetFullWidth(true)
-            box:SetText("/run for b=0,4 do for s=1,GetContainerNumSlots(b) do l=GetContainerItemLink(b,s) if l then _,_,r=GetItemInfo(l) if (r==0) then PickupContainerItem(b,s) DeleteCursorItem() end end end end")
-            widget:AddChild(box)
+            labelNormal(widget, "• Gargul - Advanced loot distribution and DKP management system for Classic WoW raids.")
+            labelNormal(widget, "• SpeedyAutoLoot - Fast automatic looting without opening loot windows.")
+            
             spacer2(widget)
 
             labelLarge(widget, "Feedback")
 
             spacer(widget)
  
-            labelNormal(widget, "If you have feedback, feel free to share it on Discord.")
-            --labelNormal(widget, "https://discord.gg/GegY9JMuKQ")
+            labelNormal(widget, "Report issues or request features on GitHub:")
             local box = AceGUI:Create("EditBox")
             box:DisableButton(true)
             box:SetFullWidth(true)
-            box:SetText("https://discord.gg/GegY9JMuKQ")
-            widget:AddChild(box)
-            spacer2(widget)
-
-            labelNormal(widget, "If you find any bugs, please report them on GitHub.")
-            --labelNormal(widget, "https://github.com/Gogo1951/GogoLoot/issues/")
-            local box = AceGUI:Create("EditBox")
-            box:DisableButton(true)
-            box:SetFullWidth(true)
-            box:SetText("https://github.com/Gogo1951/GogoLoot/issues/")
+            local urlText = "https://github.com/khlav/GogoLoot_Classic_Era_Lite/issues"
+            box:SetText(urlText)
+            -- Make non-editable and select all on focus
+            local editbox = box.editbox
+            if editbox then
+                -- Store original text
+                local originalText = urlText
+                -- Hook into focus to select all text
+                editbox:HookScript("OnEditFocusGained", function()
+                    C_Timer.After(0.01, function()
+                        editbox:HighlightText(0, -1) -- Select all text
+                    end)
+                end)
+                -- Prevent text editing by restoring original text on any change
+                editbox:HookScript("OnTextChanged", function(self, userInput)
+                    if userInput and self:GetText() ~= originalText then
+                        self:SetText(originalText)
+                        self:HighlightText(0, -1) -- Keep text selected
+                    end
+                end)
+            end
             widget:AddChild(box)
 
             spacer2(widget)
             
-            labelLarge(widget, "Creators")
+            labelLarge(widget, "Creators & Special Thanks")
 
             spacer(widget)
 
-            labelNormal(widget, "• Gogo (Mankrik-US).")
-            labelNormal(widget, "• Aero (Earthfury-US). Aero was also the creator of Questie.")
-            spacer2(widget)
-            
-            labelLarge(widget, "Special Thanks")
-
+            labelNormal(widget, "Original Creators:")
+            labelNormal(widget, "• Gogo (Mankrik-US)")
+            labelNormal(widget, "• Aero (Earthfury-US) - Also creator of Questie")
             spacer(widget)
             
-            labelNormal(widget, "• Codzima (Stonespine-EU). Codzima was also the creator of SoftRes.It.")
-            labelNormal(widget, "• Aevala (Earthfury-US).")
+            labelNormal(widget, "Special Thanks:")
+            labelNormal(widget, "• Codzima (Stonespine-EU) - Also creator of SoftRes.It")
+            labelNormal(widget, "• Aevala (Earthfury-US)")
+            spacer(widget)
+            
+            labelNormal(widget, "Classic Era Lite Version:")
+            labelNormal(widget, "• Dunckan (Mankrik-US) - Minimalist remix for Classic Era")
         end
     }
 

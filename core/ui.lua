@@ -106,7 +106,7 @@ function GogoLoot:BuildUI()
     local frame = AceGUI:Create("Frame")
     frame.frame:SetFrameStrata("DIALOG")
     GogoLoot._frame = frame
-    frame:SetTitle("GogoLoot")
+    frame:SetTitle("GogoLoot - Classic Era Lite")
     -- Add padding to the title by adjusting its position after frame is initialized
     C_Timer.After(0.01, function()
         if frame.titletext then
@@ -888,7 +888,7 @@ function GogoLoot:BuildUI()
         if GogoLoot:areWeMasterLooter() then
             tabs:SetTabs({
                 {
-                    text = "General Settings",
+                    text = "General",
                     value = "general"
                 },
                 {
@@ -903,7 +903,7 @@ function GogoLoot:BuildUI()
         else
             tabs:SetTabs({
                 {
-                    text = "General Settings",
+                    text = "General",
                     value = "general"
                 },
                 {

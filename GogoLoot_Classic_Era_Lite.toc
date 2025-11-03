@@ -1,5 +1,5 @@
 ## Interface-Classic: 11508
-## Title: GogoLoot - Classic Era
+## Title: GogoLoot - Classic Era Lite
 ## Author: Forked by Dunckan for Classic Era. Original addon by Gogo, Aero
 ## Notes: Don't Let Loot Slow Down Your Zug! A Classic WoW Master Looting & Loot Automation Tool.
 ## Version: v1.11.4

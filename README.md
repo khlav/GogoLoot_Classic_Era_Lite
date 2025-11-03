@@ -17,13 +17,13 @@ Don't let Loot slow down your zug!
 
 2. **Extract the ZIP file:**
    - **Important:** Extract directly into your `AddOns` folder
-   - Make sure the folder structure after extraction is: `AddOns/GogoLoot_Classic_Era/` (with all the addon files inside)
-   - If you see `AddOns/GogoLoot_Classic_Era/GogoLoot_Classic_Era/`, you've double-nested it - move the inner folder up one level
+   - Make sure the folder structure after extraction is: `AddOns/GogoLoot_Classic_Era_Lite/` (with all the addon files inside)
+   - If you see `AddOns/GogoLoot_Classic_Era_Lite/GogoLoot_Classic_Era_Lite/`, you've double-nested it - move the inner folder up one level
 
 3. **Verify installation:**
    - Launch WoW Classic Era
    - At the character selection screen, click "AddOns" button (bottom left)
-   - Make sure "GogoLoot - Classic Era" is listed and enabled
+   - Make sure "GogoLoot - Classic Era Lite" is listed and enabled
 
 ### :link:  **LINKS**
 

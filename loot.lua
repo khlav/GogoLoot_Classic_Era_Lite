@@ -7,5 +7,5 @@
 --   - data/data_items.lua
 --   - integrations/trade.lua, integrations/json.lua
 --
--- This file is NOT loaded by GogoLoot_Classic_Era.toc to prevent conflicts.
+-- This file is NOT loaded by GogoLoot_Classic_Era_Lite.toc to prevent conflicts.
 -- It is retained only for historical reference.

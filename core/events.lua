@@ -20,7 +20,7 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
     else]]
 
     if ("ADDON_LOADED" == evt) then
-        if ("GogoLoot_Classic_Era" == arg) then
+        if ("GogoLoot_Classic_Era_Lite" == arg) then
             events:UnregisterEvent("ADDON_LOADED")
             -- Initialize config if it doesn't exist (before any events can access it)
             if (not GogoLoot_Config) or (not GogoLoot_Config._version) or GogoLoot_Config._version < CONFIG_VERSION then

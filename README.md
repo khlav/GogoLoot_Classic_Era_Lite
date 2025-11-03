@@ -1,7 +1,6 @@
 <div align="center">
   <img src="assets/GogoLoot_Classic_Era_Lite.png" width="64" height="64">
-  
-  # GogoLoot - Classic Era Lite
+  <h1 style="margin-top: 0;">GogoLoot - Classic Era Lite</h1>
 </div>
 
 Don't let Loot slow down your zug!

@@ -28,4 +28,5 @@ Don't let Loot slow down your zug!
 ### :link:  **ORIGINAL ADD-ON LINKS**
 
 Download GogoLoot (Original) from CurseForge : https://www.curseforge.com/wow/addons/gogoloot
+
 Source Github : https://github.com/Gogo1951/GogoLoot

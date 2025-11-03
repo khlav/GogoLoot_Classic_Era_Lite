@@ -1,9 +1,9 @@
-<table border="0">
+<table style="border: none;">
 <tr>
-<td valign="middle">
+<td valign="middle" style="border: none; padding: 0;">
 <img src="assets/GogoLoot_Classic_Era_Lite.png" width="40" height="40">
 </td>
-<td valign="middle">
+<td valign="middle" style="border: none; padding-left: 10px;">
 <h1>GogoLoot - Classic Era Lite</h1>
 </td>
 </tr>

@@ -1,5 +1,7 @@
 # GogoLoot
 
+<img src="assets/GogoLoot_Classic_Era_Lite.png" width="128" height="128">
+
 Don't let Loot slow down your zug!
 
 ### :gem:  **KEY FEATURES**

@@ -34,8 +34,12 @@ Don't let Loot slow down your zug!
    - At the character selection screen, click "AddOns" button (bottom left)
    - Make sure "GogoLoot - Classic Era Lite" is listed and enabled
 
+### :link: **DOWNLOAD LINKS**
+
+* **GitHub:** https://github.com/khlav/GogoLoot_Classic_Era_Lite
+* **CurseForge:** https://www.curseforge.com/wow/addons/gogoloot-classic-era-lite
+
 ### :link:  **ORIGINAL ADD-ON LINKS**
 
-Download GogoLoot (Original) from CurseForge : https://www.curseforge.com/wow/addons/gogoloot
-
-Source Github : https://github.com/Gogo1951/GogoLoot
+* **GitHub:** https://github.com/Gogo1951/GogoLoot
+* **CurseForge:** https://www.curseforge.com/wow/addons/gogoloot

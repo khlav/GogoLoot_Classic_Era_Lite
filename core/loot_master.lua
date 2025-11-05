@@ -85,7 +85,17 @@ function GogoLoot:VacuumSlot(index, playerIndex, validPreviouslyHack)
         
         if lootLink and not ItemInfoCache[lootLink] then
             ItemIDCache[lootLink] = {string.find(lootLink,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")}
-            ItemInfoCache[lootLink] = {GetItemInfo(ItemIDCache[lootLink][5])} -- note: GetItemInfo may not be available right away! test this
+            local itemID = ItemIDCache[lootLink][5]
+            if itemID then
+                local itemInfo = {GetItemInfoInstant(itemID)}
+                if itemInfo and itemInfo[1] then -- itemID is first return value, check if we got valid data
+                    ItemInfoCache[lootLink] = itemInfo
+                else
+                    -- Item info not available yet - return true to retry next tick
+                    GogoLoot._utils.debug("Item info not available for " .. lootLink)
+                    return true
+                end
+            end
         end
         local color = ItemIDCache[lootLink][3]
         local rarity = GogoLoot._utils.colorToRarity[color] or 6

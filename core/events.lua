@@ -44,35 +44,49 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                     -- Rely on Blizzard default window for manual loot
                 else
                     canLoot = false
-                    local lootStep = 1
                     local validPreviouslyHack = {}
 
-                    local function incrementLootStep()
-                        lootStep = lootStep + 1
-                        if lootStep > GetNumLootItems() then
-                            lootStep = 1
-                        end
-                    end
-
                     local function doLootStep()
-                        GogoLoot._utils.debug("DoLootStep " .. tostring(lootStep))
-                        local index = GetNumLootItems()
+                        local numLootItems = GetNumLootItems()
+                        
+                        -- Check if no items remain
+                        if numLootItems == 0 then
+                            if lootTicker then
+                                GogoLoot._utils.debug("Cancelled loot ticker [no items]")
+                                lootTicker:Cancel()
+                                lootTicker = nil
+                            end
+                            return true
+                        end
+                        
+                        -- Build player index for all current slots in reverse order (highest to lowest)
                         local playerIndex = {}
-                        while index > 0 do -- we run this in its own loop to ensure the player name is available for all slots. Triggering a master loot event can mess with it
+                        for slotIndex = numLootItems, 1, -1 do
+                            playerIndex[slotIndex] = {}
                             for i = 1, GetNumGroupMembers() do
-                                local playerAtIndex = GetMasterLootCandidate(index, i)
-                                if playerAtIndex and not playerIndex[index] then
-                                    playerIndex[index] = {}
-                                end
+                                local playerAtIndex = GetMasterLootCandidate(slotIndex, i)
                                 if playerAtIndex then
-                                    playerIndex[index][strlower(playerAtIndex)] = i
+                                    playerIndex[slotIndex][strlower(playerAtIndex)] = i
                                 end
                             end
-                            index = index - 1
                         end
-
-                        if playerIndex[lootStep] and GogoLoot:VacuumSlot(lootStep, playerIndex[lootStep], validPreviouslyHack) then -- normal loot, stop ticking
-                            -- Item needs manual handling - cancel ticker and wait for auto-looted items to clear
+                        
+                        -- Process slots in reverse order (highest index first to minimize slot shifts)
+                        local needsManualHandling = false
+                        for slotIndex = numLootItems, 1, -1 do
+                            -- Double-check slot still exists (might have been auto-looted)
+                            if slotIndex <= GetNumLootItems() and playerIndex[slotIndex] then
+                                local result = GogoLoot:VacuumSlot(slotIndex, playerIndex[slotIndex], validPreviouslyHack)
+                                if result == true then
+                                    -- Item needs manual handling - stop processing
+                                    needsManualHandling = true
+                                    break
+                                end
+                                -- If result is false, item was successfully auto-looted
+                            end
+                        end
+                        
+                        if needsManualHandling then
                             if lootTicker then
                                 GogoLoot._utils.debug("Cancelled loot ticker [item needs manual handling]")
                                 lootTicker:Cancel()
@@ -80,7 +94,6 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                             end
                             -- Wait briefly for Blizzard to clear auto-looted items from the table
                             C_Timer.After(0.1, function()
-                                -- Re-check if any items remain that need manual handling
                                 local remainingItems = GetNumLootItems()
                                 if remainingItems > 0 then
                                     GogoLoot._utils.debug("Showing loot window with " .. tostring(remainingItems) .. " remaining items")
@@ -89,32 +102,28 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                                     GogoLoot._utils.debug("All items were auto-looted, no window needed")
                                 end
                             end)
-                            incrementLootStep()
                             return true
                         end
-
-                        if lootStep > GetNumLootItems() and lootTicker then
-                            GogoLoot._utils.debug("Cancelled loot ticker [1]")
+                        
+                        -- Check if we're done (no items left after processing)
+                        if GetNumLootItems() == 0 and lootTicker then
+                            GogoLoot._utils.debug("Cancelled loot ticker [all items processed]")
                             lootTicker:Cancel()
                             lootTicker = nil
                             return true
                         end
-
-                        incrementLootStep()
+                        
+                        -- Continue processing next tick
+                        return false
                     end
+                    
                     if lootTicker then
                         GogoLoot._utils.debug("Cancelled loot ticker [2]")
                         lootTicker:Cancel()
                         lootTicker = nil
                     end
-                    local hadNormalLoot = false
-                    --for i=1,min(5, GetNumLootItems()) do -- do 1 full iteration right away, up to 5 items
-                    --    hadNormalLoot = doLootStep() or hadNormalLoot
-                    --end
-                    if not hadNormalLoot then
-                        GogoLoot._utils.debug("There is loot, continuing timer...")
-                        lootTicker = C_Timer.NewTicker(0.05, doLootStep, 64)
-                    end
+                    GogoLoot._utils.debug("There is loot, continuing timer...")
+                    lootTicker = C_Timer.NewTicker(0.05, doLootStep, 64)
                 end
             end
         else
@@ -146,7 +155,14 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                     local ItemIDCache = GogoLoot._loot_core.ItemIDCache
                     if itemLink and not ItemInfoCache[itemLink] then
                         ItemIDCache[itemLink] = {string.find(itemLink,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")}
-                        ItemInfoCache[itemLink] = {GetItemInfo(itemID)} -- note: GetItemInfo may not be available right away! test this
+                        local itemID = ItemIDCache[itemLink][5]
+                        if itemID then
+                            local itemInfo = {GetItemInfoInstant(itemID)}
+                            if itemInfo and itemInfo[1] then -- itemID is first return value, check if we got valid data
+                                ItemInfoCache[itemLink] = itemInfo
+                            end
+                            -- If itemInfo is nil, don't cache it - will retry next time this item is seen
+                        end
                     end
                     if (not itemBindings[itemID]) or itemBindings[itemID] ~= 1 then -- not bind on pickup
                         if ItemInfoCache[itemLink] and (not GogoLoot_Config.ignoredItemsSolo[itemID]) and (not internalIgnoreList[itemID]) and ((ItemInfoCache[itemLink][12] ~= 9 -- recipes
@@ -314,4 +330,5 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
         end]]
     end
 end
+
 

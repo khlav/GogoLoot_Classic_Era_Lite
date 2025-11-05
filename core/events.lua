@@ -227,10 +227,6 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
         if GetCVarBool("autoLootDefault") == IsModifiedClick("AUTOLOOTTOGGLE") then
             -- Rely on Blizzard default window
         end
-    elseif "PLAYER_REGEN_DISABLED" == evt then
-        -- Combat started - no special handling needed now that speedy loot is removed
-    elseif "PLAYER_REGEN_ENABLED" == evt then
-        -- Combat ended - no special handling needed now that speedy loot is removed
     elseif "PLAYER_ENTERING_WORLD" == evt then -- init config default
         if (not GogoLoot_Config) or (not GogoLoot_Config._version) or GogoLoot_Config._version < CONFIG_VERSION then
             GogoLoot:BuildConfig()
@@ -300,11 +296,6 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                     break
                 end
             end
-        end
-
-        if not GogoLoot_Config._has_notified_api_change then
-            GogoLoot_Config._has_notified_api_change = true
-            print(GogoLoot.API_WARNING)
         end
         
         GameTooltip:HookScript("OnHide", function()

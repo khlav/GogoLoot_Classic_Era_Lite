@@ -21,9 +21,6 @@ function GogoLoot:Initialize(events)
     events:RegisterEvent("START_LOOT_ROLL")
     events:RegisterEvent("PLAYER_LOGIN")
 
-    events:RegisterEvent("PLAYER_REGEN_DISABLED")
-    events:RegisterEvent("PLAYER_REGEN_ENABLED")
-
     -- Set loot threshold
     LootFrame.selectedQuality = GetLootThreshold()
 

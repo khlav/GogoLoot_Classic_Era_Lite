@@ -11,8 +11,6 @@ GogoLoot.OUT_OF_RANGE = "{rt4} GogoLoot : Tried to loot %s to %s, but %s was out
 
 GogoLoot.ADDON_CONFLICT = "\124TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4.png:0\124t GogoLoot : You have multiple addons running that are attempting to interact with the loot window. This will cause problems. If you don't disable your other loot addons you will experience issues with GogoLoot."
 
-GogoLoot.API_WARNING = "\124TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4.png:0\124t GogoLoot : Due to a recent Blizzard API change, you may occasionally see a Loot Window if you attempt loot while in combat. Sorry!"
-
 GogoLoot.conflicts = { -- name must match the .TOC filename
     "AutoDestroy",
     "AutoLootAssist",

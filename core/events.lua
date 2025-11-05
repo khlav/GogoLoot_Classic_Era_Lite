@@ -46,6 +46,8 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                     canLoot = false
                     local validPreviouslyHack = {}
 
+                    -- Wait a brief moment for Blizzard to update the Master Looter frame
+                    C_Timer.After(0.1, function()
                     local function doLootStep()
                         local numLootItems = GetNumLootItems()
                         
@@ -62,11 +64,15 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                         -- Build player index for all current slots in reverse order (highest to lowest)
                         local playerIndex = {}
                         for slotIndex = numLootItems, 1, -1 do
-                            playerIndex[slotIndex] = {}
-                            for i = 1, GetNumGroupMembers() do
-                                local playerAtIndex = GetMasterLootCandidate(slotIndex, i)
-                                if playerAtIndex then
-                                    playerIndex[slotIndex][strlower(playerAtIndex)] = i
+                            -- Validate slot exists and has valid loot data before querying candidates
+                            local texture, item, quantity, quality, locked = GetLootSlotInfo(slotIndex)
+                            if texture and item then  -- Slot has valid loot
+                                playerIndex[slotIndex] = {}
+                                for i = 1, GetNumGroupMembers() do
+                                    local playerAtIndex = GetMasterLootCandidate(slotIndex, i)
+                                    if playerAtIndex then
+                                        playerIndex[slotIndex][strlower(playerAtIndex)] = i
+                                    end
                                 end
                             end
                         end
@@ -124,6 +130,7 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
                     end
                     GogoLoot._utils.debug("There is loot, continuing timer...")
                     lootTicker = C_Timer.NewTicker(0.05, doLootStep, 64)
+                    end)  -- End of C_Timer.After delay
                 end
             end
         else

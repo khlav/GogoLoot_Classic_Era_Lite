@@ -29,6 +29,10 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
     elseif "LOOT_READY" == evt then
         lootAPIOpen = true
     elseif ("LOOT_OPENED" == evt) and canLoot then
+        -- Clear any stale MasterLootFrame when new loot arrives
+        if MasterLootFrame and MasterLootFrame:IsShown() then
+            MasterLootFrame:Hide()
+        end
         GogoLoot._utils.debug("LootReady! " .. evt)
         if GetCVarBool("autoLootDefault") ~= IsModifiedClick("AUTOLOOTTOGGLE") then
             if not GogoLoot_Config.enabled then
@@ -143,6 +147,12 @@ function GogoLoot:EventHandler(events, evt, arg, message, a, b, c, ...)
             GogoLoot._utils.debug("Cancelled loot ticker [3]")
             lootTicker:Cancel()
             lootTicker = nil
+        end
+    elseif "LOOT_SLOT_CLEARED" == evt then
+        -- Hide MasterLootFrame when slots are cleared to prevent stale data
+        -- This happens when items are auto-looted via GiveMasterLoot()
+        if MasterLootFrame and MasterLootFrame:IsShown() then
+            MasterLootFrame:Hide()
         end
     elseif "START_LOOT_ROLL" == evt then
         local rollid = tonumber(arg)

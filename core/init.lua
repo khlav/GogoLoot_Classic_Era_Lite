@@ -24,6 +24,15 @@ function GogoLoot:Initialize(events)
     -- Set loot threshold
     LootFrame.selectedQuality = GetLootThreshold()
 
+    -- Fix for MasterLootFrame showing stale items
+    -- Blizzard bug: MasterLootFrame retains anchor points after being hidden,
+    -- causing it to display outdated items when it reappears
+    if MasterLootFrame then
+        hooksecurefunc(MasterLootFrame, 'Hide', function(self)
+            self:ClearAllPoints()
+        end)
+    end
+
     -- Add gray and white quality buttons to loot threshold dropdown
     UnitPopupItemQuality0DescButtonMixin = CreateFromMixins(UnitPopupItemQuality2DescButtonMixin);
 

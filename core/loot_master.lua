@@ -121,8 +121,19 @@ function GogoLoot:VacuumSlot(index, playerIndex, validPreviouslyHack)
             and ((not itemBindings[id]) or itemBindings[id] ~= 4) -- check if the item is a quest item
             and (itemBindings[id] ~= 1 or GogoLoot.validBOPInstances[select(8, GetInstanceInfo())]) then  -- make sure we are inside an instance that allows loot trading
             
-
-            local targetPlayerName = GogoLoot_Config.players[GogoLoot.rarityToText[rarity]] or strlower(GogoLoot:UnitName("Player"))--GogoLoot_Config.players["all"]
+            -- PRIORITY ORDER: Raid Quest Items/Materials check happens AFTER all filters but BEFORE rarity-based distribution
+            local targetPlayerName = nil
+            
+            -- Check if this is a raid quest item/material (override rarity-based distribution)
+            if GogoLoot_Config.raidQuestItemsAndMaterials and GogoLoot_Config.raidQuestItemsAndMaterials[id] then
+                targetPlayerName = GogoLoot_Config.players["raidQuestItemsAndMaterials"]
+                GogoLoot._utils.debug("Raid quest item/material detected: " .. tostring(id) .. " -> " .. tostring(targetPlayerName))
+            end
+            
+            -- Fall back to rarity-based distribution if not a raid quest item/material or if no player assigned
+            if not targetPlayerName then
+                targetPlayerName = GogoLoot_Config.players[GogoLoot.rarityToText[rarity]] or strlower(GogoLoot:UnitName("Player"))
+            end
 
             if targetPlayerName == "standardLootWindow" then
                 GogoLoot._utils.debug("Standard loot window target")

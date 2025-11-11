@@ -38,6 +38,12 @@ function GogoLoot._events.init:HandlePlayerEnteringWorld(events, evt)
     for id in pairs(GogoLoot_Config.ignoredItemsMaster) do
         GetItemInfo(id)
     end
+    -- Pre-load raid quest items and materials for faster UI display
+    if GogoLoot_Config.raidQuestItemsAndMaterials then
+        for id in pairs(GogoLoot_Config.raidQuestItemsAndMaterials) do
+            GetItemInfo(id)
+        end
+    end
 
     local creatorText = "\124TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4.png:0\124t GogoLoot : Team Member"
     GameTooltip:HookScript("OnTooltipSetUnit", function(self)

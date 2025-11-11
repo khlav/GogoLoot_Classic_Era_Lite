@@ -1,6 +1,8 @@
 -- announce messages. TODO: put these in their own file
-GogoLoot.LOOT_TARGET_MESSAGE = "{rt4} GogoLoot : Master Looter Active! %s items will go to %s!"
-GogoLoot.LOOT_TARGET_DISABLED_MESSAGE = "{rt4} GogoLoot : Master Looter Active! %s items will use Standard Master Looter Window!"
+GogoLoot.MASTER_LOOTER_ACTIVE = "{rt4} GogoLoot : Master Looter Active!"
+GogoLoot.LOOT_TARGET_MESSAGE = "{rt4} - %s items will go to %s!"
+GogoLoot.LOOT_TARGET_DISABLED_MESSAGE = "{rt4} - %s items will use Standard Master Looter Window!"
+GogoLoot.RAID_QUEST_ITEMS_MESSAGE = "{rt4} - Raid Quest Items & Materials will go to %s!"
 
 GogoLoot.AUTO_ROLL_ENABLED = "{rt4} GogoLoot : Auto %s on BoEs Enabled!"
 GogoLoot.AUTO_ROLL_DISABLED = "{rt4} GogoLoot : Auto %s on BoEs Disabled!"
@@ -222,6 +224,15 @@ function GogoLoot:BuildUI()
                     end
                 end
 
+                -- Send "Master Looter Active!" message once
+                SendChatMessage(GogoLoot.MASTER_LOOTER_ACTIVE, UnitInRaid("Player") and "RAID" or "PARTY")
+                
+                -- Announce Raid Quest Items & Materials assignment first if set
+                if GogoLoot_Config.players["raidQuestItemsAndMaterials"] and GogoLoot_Config.players["raidQuestItemsAndMaterials"] ~= "standardLootWindow" then
+                    local playerName = GogoLoot_Config.players["raidQuestItemsAndMaterials"]
+                    SendChatMessage(string.format(GogoLoot.RAID_QUEST_ITEMS_MESSAGE, capitalize(playerName)), UnitInRaid("Player") and "RAID" or "PARTY")
+                end
+                
                 table.sort(toSend, function(a, b)
                     return a[2] < b[2]
                 end)
@@ -397,22 +408,56 @@ function GogoLoot:BuildUI()
         
     end
 
-    local function buildIgnoredFrame(widget, text, itemTable, group, height)
+    -- Helper function to check if current config matches defaults
+    local function matchesDefaults(itemTable)
+        if not itemTable or not GogoLoot.raidQuestItemsAndMaterials then
+            return false
+        end
+        
+        -- Check if all default items are present
+        for id in pairs(GogoLoot.raidQuestItemsAndMaterials) do
+            if not itemTable[id] then
+                return false
+            end
+        end
+        
+        -- Check if there are any extra items not in defaults
+        for id in pairs(itemTable) do
+            if not GogoLoot.raidQuestItemsAndMaterials[id] then
+                return false
+            end
+        end
+        
+        return true
+    end
+
+    local function buildIgnoredFrame(widget, text, itemTable, group, height, buttonText, orderArray)
         spacer(widget)
         label(widget, text, nil)
 
+        -- Create container for input box and buttons (horizontal layout)
+        local inputContainer = AceGUI:Create("SimpleGroup")
+        inputContainer:SetFullWidth(true)
+        inputContainer:SetLayout("Flow")
+        
         local box = AceGUI:Create("EditBox")
         box:DisableButton(true)
         box:SetWidth(150)
         --box:SetDisabled(true)
-
-        spacer(widget)
-        spacer(widget)
-        widget:AddChild(box)
-
+        inputContainer:AddChild(box)
+        
+        -- Add small spacer between input box and buttons
+        local inputSpacer = AceGUI:Create("Label")
+        inputSpacer:SetWidth(5)
+        inputContainer:AddChild(inputSpacer)
+        
+        -- Create button container for Add Item and Restore Default buttons
+        local buttonContainer = AceGUI:Create("SimpleGroup")
+        buttonContainer:SetLayout("Flow")
+        
         local button = AceGUI:Create("Button")
-        button:SetWidth(120)
-        button:SetText("Ignore Item")
+        button:SetWidth(100)
+        button:SetText(buttonText or "Ignore Item")
         button:SetCallback("OnClick", function()
             local input = box:GetText()
             local itemID = nil
@@ -427,6 +472,20 @@ function GogoLoot:BuildUI()
             if itemID then
                 --print(" |cFF00FF00GogoLoot|r : Ignoring item: " .. input) 
                 itemTable[itemID] = true
+                -- If using order array, add new items to the end
+                if orderArray then
+                    -- Check if itemID is already in order array
+                    local found = false
+                    for _, existingID in ipairs(orderArray) do
+                        if existingID == itemID then
+                            found = true
+                            break
+                        end
+                    end
+                    if not found then
+                        tinsert(orderArray, itemID)
+                    end
+                end
                 widget:ReleaseChildren()
                 --print("Re-rendering " .. group)
                 render[group](widget, group)
@@ -434,9 +493,57 @@ function GogoLoot:BuildUI()
         end)
         --button:SetDisabled(true)
         
-        widget:AddChild(button)
-        spacer(widget)
-
+        buttonContainer:AddChild(button)
+        
+        -- Add Restore Default button if this is the raid quest items tab
+        if group == "raidQuestItemsAndMaterials" then
+            -- Add small spacer between buttons
+            local buttonSpacer = AceGUI:Create("Label")
+            buttonSpacer:SetWidth(5)
+            buttonContainer:AddChild(buttonSpacer)
+            
+            local restoreButton = AceGUI:Create("Button")
+            restoreButton:SetWidth(105)
+            restoreButton:SetText("Restore Default")
+            
+            -- Check if current config matches defaults and disable button if so
+            local isDefault = matchesDefaults(itemTable)
+            restoreButton:SetDisabled(isDefault)
+            restoreButton:SetCallback("OnClick", function()
+                -- Clear current items
+                for id in pairs(itemTable) do
+                    itemTable[id] = nil
+                end
+                -- Clear order array
+                if orderArray then
+                    for i = #orderArray, 1, -1 do
+                        tremove(orderArray, i)
+                    end
+                end
+                -- Restore default items from the hardcoded defaults in data/data_items.lua
+                -- This is the source of truth that BuildConfig() uses to initialize the config
+                local defaultItems = {}
+                if GogoLoot.raidQuestItemsAndMaterials then
+                    for id in pairs(GogoLoot.raidQuestItemsAndMaterials) do
+                        tinsert(defaultItems, id)
+                    end
+                end
+                -- Restore items from defaults
+                for _, id in ipairs(defaultItems) do
+                    itemTable[id] = true
+                    if orderArray then
+                        tinsert(orderArray, id)
+                    end
+                end
+                widget:ReleaseChildren()
+                render[group](widget, group)
+            end)
+            buttonContainer:AddChild(restoreButton)
+        end
+        
+        inputContainer:AddChild(buttonContainer)
+        widget:AddChild(inputContainer)
+   
         local list = scrollFrame(widget, height)
         
         --[[for e=1,50 do
@@ -449,25 +556,90 @@ function GogoLoot:BuildUI()
             spacer(list)
         end]]
 
-        local sortedList = {}
-        local sortLookup = {}
-
-        local badInfo = false
-
-        for id in pairs(itemTable) do
-            local n = GetItemInfo(tonumber(id))
-            if not n then 
-                badInfo = true
-                break
-            end
-            tinsert(sortedList, n)
-            sortLookup[n] = id
+        -- Safety check: ensure itemTable is initialized
+        if not itemTable then
+            itemTable = {}
         end
-        
-        table.sort(sortedList)
 
-        if badInfo then
+        -- If orderArray is provided, use it for display order; otherwise sort alphabetically
+        if orderArray then
+            -- Display items in the order specified by orderArray
+            for _, id in ipairs(orderArray) do
+                if itemTable[id] then
+                    local n = GetItemInfo(tonumber(id))
+                    if n then
+                        buildItemLink(list, id)
+                        local button = AceGUI:Create("Button")
+                        button:SetWidth(85)
+                        button:SetText("Remove")
+                        button:SetCallback("OnClick", function()
+                            itemTable[id] = nil
+                            -- Remove from order array
+                            for i, orderID in ipairs(orderArray) do
+                                if orderID == id then
+                                    tremove(orderArray, i)
+                                    break
+                                end
+                            end
+                            widget:ReleaseChildren()
+                            render[group](widget, group)
+                        end)
+                        list:AddChild(button)
+                        spacer(list)
+                    end
+                end
+            end
+            -- Add any items not in orderArray at the end (newly added items)
             for id in pairs(itemTable) do
+                local found = false
+                for _, orderID in ipairs(orderArray) do
+                    if orderID == id then
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    local n = GetItemInfo(tonumber(id))
+                    if n then
+                        buildItemLink(list, id)
+                        local button = AceGUI:Create("Button")
+                        button:SetWidth(85)
+                        button:SetText("Remove")
+                        button:SetCallback("OnClick", function()
+                            itemTable[id] = nil
+                            widget:ReleaseChildren()
+                            render[group](widget, group)
+                        end)
+                        list:AddChild(button)
+                        spacer(list)
+                    end
+                end
+            end
+        else
+            -- Original alphabetical sorting behavior
+            local sortedList = {}
+            local sortLookup = {}
+            local itemsWithoutInfo = {}
+
+            -- First pass: collect items with info and items without info separately
+            for id in pairs(itemTable) do
+                local n = GetItemInfo(tonumber(id))
+                if n then
+                    tinsert(sortedList, n)
+                    sortLookup[n] = id
+                else
+                    -- Item info not loaded yet, store ID for later display
+                    tinsert(itemsWithoutInfo, id)
+                end
+            end
+            
+            -- Sort items that have info
+            table.sort(sortedList)
+
+            -- Display sorted items with info
+            for _,name in pairs(sortedList) do
+                local id = sortLookup[name]
+    
                 buildItemLink(list, id)
                 local button = AceGUI:Create("Button")
                 button:SetWidth(85)
@@ -480,10 +652,9 @@ function GogoLoot:BuildUI()
                 list:AddChild(button)
                 spacer(list)
             end
-        else
-            for _,name in pairs(sortedList) do
-                local id = sortLookup[name]
-    
+            
+            -- Display items without info at the end (unsorted)
+            for _, id in ipairs(itemsWithoutInfo) do
                 buildItemLink(list, id)
                 local button = AceGUI:Create("Button")
                 button:SetWidth(85)
@@ -543,12 +714,78 @@ function GogoLoot:BuildUI()
         widget:AddChild(container)
     end
 
+    local function buildRaidQuestItemsAndMaterialsDropdown(widget, players, playerOrder)
+        -- Wrap label+dropdown pair in a container to prevent wrapping
+        local container = AceGUI:Create("SimpleGroup")
+        container:SetFullWidth(true)
+        container:SetLayout("Flow")
+
+        label(container, "    Raid Quest Items & Materials", 200)
+        local dropdown = AceGUI:Create("Dropdown")
+        dropdown:SetWidth(230)
+        
+        -- Create extended player list with "Not Set" option
+        local extendedPlayers = {}
+        local extendedOrder = {}
+        for k, v in pairs(players) do
+            extendedPlayers[k] = v
+        end
+        extendedPlayers[""] = "Not set -- Using rarity settings"
+        tinsert(extendedOrder, "")
+        tinsert(extendedOrder, "---")
+        for _, v in pairs(playerOrder) do
+            if v ~= "---" then
+                tinsert(extendedOrder, v)
+            end
+        end
+        
+        dropdown:SetList(extendedPlayers, extendedOrder)
+
+        -- Validate player if set
+        if GogoLoot_Config.players["raidQuestItemsAndMaterials"] and GogoLoot_Config.players["raidQuestItemsAndMaterials"] ~= "standardLootWindow" and not players[strlower(GogoLoot_Config.players["raidQuestItemsAndMaterials"])] then
+            -- Player is no longer in the party, reset to not set
+            GogoLoot_Config.players["raidQuestItemsAndMaterials"] = nil
+        end
+
+        -- Set dropdown value
+        if GogoLoot_Config.players["raidQuestItemsAndMaterials"] then
+            dropdown:SetValue(GogoLoot_Config.players["raidQuestItemsAndMaterials"])
+        else
+            dropdown:SetValue("") -- "Not set"
+        end
+
+        dropdown:SetCallback("OnValueChanged", function()
+            local value = dropdown:GetValue()
+            if value == "---" then
+                dropdown:SetValue(GogoLoot_Config.players["raidQuestItemsAndMaterials"] or "")
+            elseif value == "" then
+                -- "Not set" selected - clear the config
+                GogoLoot_Config.players["raidQuestItemsAndMaterials"] = nil
+            else
+                GogoLoot_Config.players["raidQuestItemsAndMaterials"] = value
+            end
+        end)
+
+        dropdown:SetItemDisabled("---", true)
+
+        container:AddChild(dropdown)
+        widget:AddChild(container)
+    end
+
     render = {
         ["ignoredBase"] = function(widget, group)
             buildIgnoredFrame(widget, "NOTE: All |cFFFF8000Legendary items|r, Recipes, Mounts, Pets, and items on this list will always show up for manual rolls.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.ignoredItemsSolo, group)
         end,
         ["ignoredMaster"] = function(widget, group)
-            buildIgnoredFrame(widget, "NOTE: All |cFFFF8000Legendary items|r, as well as non-tradable Quest Items, are always ignored and will appear in a Standard Loot Window.\n\nItems on this list will always show up in the Standard Loot Window.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.ignoredItemsMaster, group, 200)
+            buildIgnoredFrame(widget, "NOTE: All |cFFFF8000Legendary items|r, as well as non-tradable Quest Items, are always ignored and will appear in a Standard Loot Window.\n\nItems on this list will always show up in the Standard Loot Window.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.ignoredItemsMaster, group, 300)
+        end,
+        ["raidQuestItemsAndMaterials"] = function(widget, group)
+            -- Ensure config is initialized
+            if not GogoLoot_Config.raidQuestItemsAndMaterials then
+                GogoLoot_Config.raidQuestItemsAndMaterials = {}
+            end
+            -- Don't pass orderArray - this will use alphabetical sorting
+            buildIgnoredFrame(widget, "NOTE: Raid Quest Items and Materials will be automatically assigned to the designated player (if set) instead of using rarity-based distribution.\n\nItems on this list include quest items, crafting materials, and tokens from raid instances.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.raidQuestItemsAndMaterials, group, 300, "Add Item")
         end,
         ["general"] = function(widget, group)
             --[[
@@ -768,6 +1005,10 @@ function GogoLoot:BuildUI()
 
             local threshold = GetLootThreshold()
 
+            -- Raid Quest Items & Materials dropdown (appears above all rarity dropdowns)
+            buildRaidQuestItemsAndMaterialsDropdown(sf, playerList, playerOrder)
+            spacer(sf)
+
             buildTypeDropdown(sf, "gray", playerList, playerOrder, threshold > 0)
             buildTypeDropdown(sf, "white", playerList, playerOrder, threshold > 1)
             buildTypeDropdown(sf, "green", playerList, playerOrder, threshold > 2)
@@ -790,6 +1031,10 @@ function GogoLoot:BuildUI()
             tabs:SetLayout("Flow") 
             tabs:SetTabs({
                 {
+                    text = "Raid Quest Items & Materials",
+                    value="raidQuestItemsAndMaterials"
+                },
+                {
                     text = "Ignored Items",
                     value="ignoredMaster"
                 },
@@ -797,7 +1042,7 @@ function GogoLoot:BuildUI()
             tabs:SetFullWidth(true)
             tabs:SetFullHeight(true)
             tabs:SetCallback("OnGroupSelected", function(widget, event, group) widget:ReleaseChildren() render[group](widget, group) end)
-            tabs:SelectTab("ignoredMaster")
+            tabs:SelectTab("raidQuestItemsAndMaterials")
             sf:AddChild(tabs)
         end,
         ["about"] = function(widget, group)

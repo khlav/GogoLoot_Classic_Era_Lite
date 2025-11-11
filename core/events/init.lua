@@ -8,6 +8,8 @@ function GogoLoot._events.init:HandleAddonLoaded(events, evt, arg)
         if (not GogoLoot_Config) or (not GogoLoot_Config._version) or GogoLoot_Config._version < CONFIG_VERSION then
             GogoLoot:BuildConfig()
         end
+        -- Ensure raid quest items and materials are initialized even if config exists but field is missing
+        GogoLoot:InitializeRaidQuestItemsAndMaterials()
         GogoLoot:Initialize(events)
     end
 end

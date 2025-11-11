@@ -780,10 +780,8 @@ function GogoLoot:BuildUI()
             buildIgnoredFrame(widget, "NOTE: All |cFFFF8000Legendary items|r, as well as non-tradable Quest Items, are always ignored and will appear in a Standard Loot Window.\n\nItems on this list will always show up in the Standard Loot Window.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.ignoredItemsMaster, group, 300)
         end,
         ["raidQuestItemsAndMaterials"] = function(widget, group)
-            -- Ensure config is initialized
-            if not GogoLoot_Config.raidQuestItemsAndMaterials then
-                GogoLoot_Config.raidQuestItemsAndMaterials = {}
-            end
+            -- Ensure config is initialized with defaults if missing
+            GogoLoot:InitializeRaidQuestItemsAndMaterials()
             -- Don't pass orderArray - this will use alphabetical sorting
             buildIgnoredFrame(widget, "NOTE: Raid Quest Items and Materials will be automatically assigned to the designated player (if set) instead of using rarity-based distribution.\n\nItems on this list include quest items, crafting materials, and tokens from raid instances.\n\nEnter Item ID, or Drag Item on to Input.", GogoLoot_Config.raidQuestItemsAndMaterials, group, 300, "Add Item")
         end,

@@ -174,3 +174,40 @@ function GogoLoot:BuildConfig()
     GogoLoot_Config._version = CONFIG_VERSION
 end
 
+-- Initialize raid quest items and materials with defaults if missing
+-- This ensures existing configs get the default list even if the field is missing
+function GogoLoot:InitializeRaidQuestItemsAndMaterials()
+    if not GogoLoot_Config.raidQuestItemsAndMaterials then
+        -- Copy defaults from data file
+        GogoLoot_Config.raidQuestItemsAndMaterials = {}
+        if GogoLoot.raidQuestItemsAndMaterials then
+            for id, _ in pairs(GogoLoot.raidQuestItemsAndMaterials) do
+                GogoLoot_Config.raidQuestItemsAndMaterials[id] = true
+            end
+        end
+    end
+    
+    -- Initialize order array if not already set (same pattern as BuildConfig)
+    if not GogoLoot_Config.raidQuestItemsAndMaterialsOrder then
+        GogoLoot_Config.raidQuestItemsAndMaterialsOrder = {
+            -- Molten Core (8 items)
+            11382, 7077, 7076, 7078, 7067, 17011, 17010, 7068,
+            -- Blackwing Lair (2 items)
+            18562, 19183,
+            -- Zul'Gurub (30 items)
+            19726, 19943, 12804, 19698, 19699, 19700, 19701, 19702, 19703, 19704, 19705, 19706,
+            19707, 19708, 19709, 19710, 19711, 19712, 19713, 19714, 19715,
+            19813, 19814, 19815, 19816, 19817, 19818, 19819, 19820, 19821,
+            -- Ahn'Qiraj (30 items)
+            21762, 21761, 18512, 16202, 16203, 16204,
+            20858, 20859, 20860, 20861, 20862, 20863, 20864, 20865,
+            20866, 20867, 20868, 20869, 20870, 20871, 20872, 20873,
+            20874, 20875, 20876, 20877, 20878, 20879, 20882, 20881,
+            -- Naxxramas (6 items)
+            23055, 22682, 22373, 22374, 22375, 22376,
+            -- Any zone (2 items)
+            14047, 14227
+        }
+    end
+end
+

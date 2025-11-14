@@ -1,5 +1,15 @@
 # GogoLoot - Classic Era Lite
 
+## [v1.2.3](https://github.com/khlav/GogoLoot_Classic_Era_Lite/tree/v1.2.3) (2025-01-XX)
+[Full Changelog](https://github.com/khlav/GogoLoot_Classic_Era_Lite/commits/v1.2.3) [Previous Releases](https://github.com/khlav/GogoLoot_Classic_Era_Lite/releases)
+
+- v1.2.3: Add conflict detection for Leatrix Plus and Gargul
+  - Added feature-specific conflict detection for Leatrix Plus "Faster auto loot" setting
+  - Added feature-specific conflict detection for Gargul "PackMule Autoloot for Master Loot" setting
+  - Custom warning messages guide users to disable conflicting features
+  - Shows all detected conflicts (not just the first one)
+  - Added `/gl testconflicts` command for manual conflict testing
+
 ## [v1.2.2](https://github.com/khlav/GogoLoot_Classic_Era_Lite/tree/v1.2.2) (2025-01-XX)
 [Full Changelog](https://github.com/khlav/GogoLoot_Classic_Era_Lite/commits/v1.2.2) [Previous Releases](https://github.com/khlav/GogoLoot_Classic_Era_Lite/releases)
 

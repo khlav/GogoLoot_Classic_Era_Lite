@@ -13,6 +13,10 @@ GogoLoot.OUT_OF_RANGE = "{rt4} GogoLoot : Tried to loot %s to %s, but %s was out
 
 GogoLoot.ADDON_CONFLICT = "\124TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4.png:0\124t GogoLoot : You have multiple addons running that are attempting to interact with the loot window. This will cause problems. If you don't disable your other loot addons you will experience issues with GogoLoot."
 
+GogoLoot.ADDON_CONFLICT_LEATRIX = "\124TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4.png:0\124t GogoLoot : Leatrix Plus conflict detected! If you MasterLooting issues, try disabling 'Faster auto loot' in Leatrix Plus settings."
+
+GogoLoot.ADDON_CONFLICT_GARGUL = "\124TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4.png:0\124t GogoLoot : Gargul conflict detected! If you experience MasterLooting issues, try disabling 'Autoloot with PackMule' (specifically, uncheck 'Enable for Master Loot') in Gargul settings."
+
 GogoLoot.conflicts = { -- name must match the .TOC filename
     "AutoDestroy",
     "AutoLootAssist",
@@ -23,6 +27,27 @@ GogoLoot.conflicts = { -- name must match the .TOC filename
     "KillTrack",
     "LootFast2",
     "RCLootCouncil_Classic",
+}
+
+-- Addons with feature-specific conflicts (check for specific settings)
+GogoLoot.conflictsWithFeatures = {
+    Leatrix_Plus = {
+        addonName = "Leatrix_Plus",
+        message = GogoLoot.ADDON_CONFLICT_LEATRIX,
+        featureCheck = function()
+            return LeaPlusDB and LeaPlusDB["FasterLooting"] == "On"
+        end,
+    },
+    Gargul = {
+        addonName = "Gargul",
+        message = GogoLoot.ADDON_CONFLICT_GARGUL,
+        featureCheck = function()
+            return GargulDB 
+                and GargulDB.Settings
+                and GargulDB.Settings.PackMule 
+                and GargulDB.Settings.PackMule.enabledForMasterLoot == true
+        end,
+    },
 }
 
 local AceGUI = LibStub("AceGUI-3.0")

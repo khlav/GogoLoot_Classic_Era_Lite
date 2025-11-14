@@ -17,6 +17,68 @@ function GogoLoot:RegisterCommands()
 
         if not filter and not player then
             GogoLoot:BuildUI()
+        elseif filter == "testconflicts" and not player then
+            -- Manually test conflict detection
+            print("|cFFAAFFAA[GogoLoot]|r Testing conflict detection...")
+            local detectedConflicts = {}
+            
+            -- Check feature-specific conflicts
+            if GogoLoot.conflictsWithFeatures then
+                for addonKey, conflictInfo in pairs(GogoLoot.conflictsWithFeatures) do
+                    local isLoaded = IsAddOnLoaded(conflictInfo.addonName)
+                    print("|cFFAAFFAA[GogoLoot]|r Checking " .. conflictInfo.addonName .. ": Loaded=" .. tostring(isLoaded))
+                    if isLoaded then
+                        -- Debug: Check what values exist
+                        if conflictInfo.addonName == "Leatrix_Plus" then
+                            print("  LeaPlusDB exists: " .. tostring(LeaPlusDB ~= nil))
+                            if LeaPlusDB then
+                                print("  LeaPlusDB[\"FasterLooting\"] = " .. tostring(LeaPlusDB["FasterLooting"]))
+                            end
+                        elseif conflictInfo.addonName == "Gargul" then
+                            print("  GargulDB exists: " .. tostring(GargulDB ~= nil))
+                            if GargulDB then
+                                print("  GargulDB.Settings exists: " .. tostring(GargulDB.Settings ~= nil))
+                                if GargulDB.Settings then
+                                    print("  GargulDB.Settings.PackMule exists: " .. tostring(GargulDB.Settings.PackMule ~= nil))
+                                    if GargulDB.Settings.PackMule then
+                                        print("  GargulDB.Settings.PackMule.enabledForMasterLoot = " .. tostring(GargulDB.Settings.PackMule.enabledForMasterLoot))
+                                    end
+                                end
+                            end
+                        end
+                        
+                        local hasConflict = conflictInfo.featureCheck()
+                        print("  Feature enabled: " .. tostring(hasConflict))
+                        if hasConflict then
+                            table.insert(detectedConflicts, conflictInfo.message)
+                        end
+                    end
+                end
+            end
+            
+            -- Check general conflicts
+            local generalConflicts = {}
+            for _, addon in pairs(GogoLoot.conflicts) do
+                if IsAddOnLoaded(addon) then
+                    table.insert(generalConflicts, addon)
+                end
+            end
+            
+            -- Display results
+            if #detectedConflicts > 0 then
+                print("|cFFFF0000[GogoLoot]|r Detected conflicts:")
+                for _, message in ipairs(detectedConflicts) do
+                    print(message)
+                end
+            elseif #generalConflicts > 0 then
+                print("|cFFFF0000[GogoLoot]|r Detected general conflicts:")
+                print(GogoLoot.ADDON_CONFLICT)
+                for _, addon in ipairs(generalConflicts) do
+                    print("The conflicting AdddOn: " .. addon)
+                end
+            else
+                print("|cFF00FF00[GogoLoot]|r No conflicts detected!")
+            end
         elseif filter == "status" and not player then
             print("|cFFAAFFAA[GogoLoot]|r The current configuration:")
             for k,v in pairs(GogoLoot_Config.players) do

@@ -80,15 +80,43 @@ function GogoLoot._events.init:HandlePlayerEnteringWorld(events, evt)
 
     if not GogoLoot._has_done_conflict_check then
         GogoLoot._has_done_conflict_check = true
-        for _, addon in pairs(GogoLoot.conflicts) do
-            if IsAddOnLoaded(addon) then
-                local conflict = addon
-                C_Timer.After(4, function()
-                    print(GogoLoot.ADDON_CONFLICT) -- send shortly after login, so its not drown out by other addon messages
-                    print("The conflicting AdddOn: " .. conflict)
-                end)
-                break
+        local detectedConflicts = {}
+        
+        -- Check feature-specific conflicts first
+        if GogoLoot.conflictsWithFeatures then
+            for _, conflictInfo in pairs(GogoLoot.conflictsWithFeatures) do
+                if IsAddOnLoaded(conflictInfo.addonName) then
+                    local hasConflict = conflictInfo.featureCheck()
+                    if hasConflict then
+                        table.insert(detectedConflicts, conflictInfo.message)
+                    end
+                end
             end
+        end
+        
+        -- Check general conflicts if no feature-specific conflicts found
+        if #detectedConflicts == 0 then
+            local generalConflicts = {}
+            for _, addon in pairs(GogoLoot.conflicts) do
+                if IsAddOnLoaded(addon) then
+                    table.insert(generalConflicts, addon)
+                end
+            end
+            if #generalConflicts > 0 then
+                table.insert(detectedConflicts, GogoLoot.ADDON_CONFLICT)
+                for _, addon in ipairs(generalConflicts) do
+                    table.insert(detectedConflicts, "The conflicting AdddOn: " .. addon)
+                end
+            end
+        end
+        
+        -- Display all detected conflicts after delay
+        if #detectedConflicts > 0 then
+            C_Timer.After(4, function()
+                for _, message in ipairs(detectedConflicts) do
+                    print(message)
+                end
+            end)
         end
     end
     
